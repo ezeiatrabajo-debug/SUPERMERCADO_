@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>SuperStock</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+        :root {
+            --primary: #1f2937;
+            --primary-dark: #111827;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #16a34a;
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --text: #111827;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 20px 16px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+        .header p { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 70px;
+            z-index: 99;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 14px 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-light);
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .nav-tab.active {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background: var(--text);
+            border-radius: 2px 2px 0 0;
+        }
+        .badge {
+            display: inline-block;
+            background: var(--text);
+            color: white;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+            min-width: 18px;
+            font-weight: 600;
+        }
+        .container { padding: 12px; max-width: 600px; margin: 0 auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .fab:active { transform: scale(0.92); background: var(--primary-dark); }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: var(--card);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.15s;
+        }
+        .product-item:active { background: #f3f4f6; }
+        .product-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-ok { background: var(--success); }
+        .status-low { background: var(--warning); }
+        .status-out { background: var(--danger); }
+        .product-info { flex: 1; min-width: 0; }
+        .product-name { font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-meta { font-size: 0.8rem; color: var(--text-light); margin-top: 3px; }
+        .product-price { font-size: 0.75rem; color: var(--text-light); font-weight: 500; margin-top: 2px; }
+        .product-actions { display: flex; gap: 4px; align-items: center; }
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--text);
+            transition: all 0.15s;
+        }
+        .btn-icon:active { background: var(--bg); }
+        .btn-icon.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-icon.danger { background: var(--danger); color: white; border-color: var(--danger); }
+        .btn-icon.ghost { border: none; background: transparent; color: var(--text-light); }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+        .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); font-weight: 600; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 2000;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            animation: slideUp 0.25s ease;
+            overflow-y: auto;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; }
+        .modal-close {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: none; background: var(--bg); cursor: pointer; font-size: 1.1rem;
+            color: var(--text);
+        }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+            color: var(--text);
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--text);
+        }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background 0.2s;
+        }
+        .btn-submit:active { background: var(--primary-dark); }
+        .btn-secondary {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg);
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+        .btn-secondary:active { background: #e5e7eb; }
+        .btn-delete {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: var(--danger);
+            border: 1.5px solid var(--danger);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 0 12px;
+            margin-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .category-filter::-webkit-scrollbar { display: none; }
+        .cat-chip {
+            padding: 7px 14px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            color: var(--text-light);
+        }
+        .cat-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .stat-box {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px 6px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-number { font-size: 1.4rem; font-weight: 700; }
+        .stat-label { font-size: 0.7rem; color: var(--text-light); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .stat-ok { color: var(--success); }
+        .stat-low { color: var(--warning); }
+        .stat-out { color: var(--danger); }
+
+        .checkbox-wrap {
+            width: 26px; height: 26px;
+            border-radius: 6px;
+            border: 1.5px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .checkbox-wrap.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text);
+            color: white;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            background: white;
+            color: var(--text);
+        }
+        .search-box:focus { outline: none; border-color: var(--text); }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            background: var(--card);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            border: 1px solid var(--border);
+        }
+        .history-date { font-size: 0.75rem; color: var(--text-light); }
+
+        .swipe-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-light);
+            padding: 8px;
+            opacity: 0.6;
+        }
+
+        .lista-total {
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+        .lista-total-label { font-size: 0.8rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .lista-total-amount { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+
+        .optional-hint {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-left: 4px;
+        }
+
+        .menu-dots {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--text-light);
+        }
+        .menu-dots:active { background: var(--bg); }
+
+        .action-menu {
+            position: absolute;
+            right: 8px;
+            top: 44px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 50;
+            min-width: 160px;
+            display: none;
+            overflow: hidden;
+        }
+        .action-menu.active { display: block; }
+        .action-menu button {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: white;
+            text-align: left;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+        .action-menu button:last-child { border-bottom: none; }
+        .action-menu button:active { background: var(--bg); }
+        .action-menu button.danger-text { color: var(--danger); }
+
+        .product-item-wrap { position: relative; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SuperStock</h1>
+        <p>Tu stock y lista de compras</p>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showSection('stock')">
+            Stock
+        </button>
+        <button class="nav-tab" onclick="showSection('lista')">
+            Lista <span class="badge" id="lista-badge" style="display:none">0</span>
+        </button>
+        <button class="nav-tab" onclick="showSection('historial')">
+            Historial
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- STOCK -->
+        <div id="section-stock" class="section active">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number stat-ok" id="stat-ok">0</div>
+                    <div class="stat-label">Bien</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number stat-low" id="stat-low">0</div>
+                    <div class="stat-label">Bajo</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number stat-out" id="stat-out">0</div>
+                    <div class="stat-label">Agotado</div>
+                </div>
+            </div>
+            <input type="text" class="search-box" id="stock-search" placeholder="Buscar producto..." oninput="renderStock()">
+            <div class="category-filter" id="stock-filters"></div>
+            <div id="stock-list"></div>
+        </div>
+
+        <!-- LISTA -->
+        <div id="section-lista" class="section">
+            <div id="lista-total-box" style="display:none">
+                <div class="lista-total">
+                    <div class="lista-total-label">Costo estimado</div>
+                    <div class="lista-total-amount" id="lista-total">$0</div>
+                </div>
+            </div>
+            <div id="lista-content"></div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div id="section-historial" class="section">
+            <div id="historial-content"></div>
+        </div>
+    </div>
+
+    <button class="fab" onclick="openModal()">+</button>
+
+    <!-- MODAL PRODUCTO -->
+    <div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 id="modal-title">Nuevo producto</h2>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <form id="product-form" onsubmit="saveProduct(event)">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="prod-name" placeholder="Ej: Leche, Arroz, Papel..." required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cantidad actual</label>
+                        <input type="number" id="prod-qty" placeholder="0" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <select id="prod-unit">
+                            <option value="unidades">unidades</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="ml">ml</option>
+                            <option value="paquetes">paquetes</option>
+                            <option value="rollos">rollos</option>
+                            <option value="latas">latas</option>
+                            <option value="botellas">botellas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mínimo deseado</label>
+                        <input type="number" id="prod-min" placeholder="1" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="prod-cat">
+                            <option value="Alimentos">Alimentos</option>
+                            <option value="Bebidas">Bebidas</option>
+                            <option value="Limpieza">Limpieza</option>
+                            <option value="Higiene">Higiene</option>
+                            <option value="Mascotas">Mascotas</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Precio unitario <span class="optional-hint">(opcional)</span></label>
+                    <input type="number" id="prod-price" placeholder="Ej: 1200" min="0" step="1">
+                </div>
+                <button type="submit" class="btn-submit" id="btn-save">Guardar</button>
+                <button type="button" class="btn-secondary" id="btn-reset" style="display:none" onclick="resetQty()">Restablecer cantidad a 0</button>
+                <button type="button" class="btn-delete" id="btn-delete" style="display:none" onclick="deleteProduct()">Eliminar producto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MENU CONTEXTUAL -->
+    <div class="modal-overlay" id="menu-overlay" onclick="closeMenu()">
+        <div style="position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:center; z-index:2500;" onclick="event.stopPropagation()">
+            <div class="modal" style="border-radius:20px 20px 0 0; padding:0; overflow:hidden;">
+                <div style="padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600; font-size:0.9rem; color:var(--text-light);">Opciones</div>
+                <button style="width:100%; padding:16px 20px; border:none; background:white; text-align:left; font-size:1rem; cursor:pointer; border-bottom:1px solid var(--border);" onclick="menuEdit()">Editar producto</button>
+                <button style="width:100%; padding:16px 20px; border:none; background:white; text-align:left; font-size:1rem; cursor:pointer; border-bottom:1px solid var(--border);" onclick="menuReset()">Restablecer cantidad a 0</button>
+                <button style="width:100%; padding:16px 20px; border:none; background:white; text-align:left; font-size:1rem; cursor:pointer; color:var(--danger);" onclick="menuDelete()">Eliminar producto</button>
+                <button style="width:100%; padding:16px 20px; border:none; background:var(--bg); text-align:center; font-size:1rem; cursor:pointer; color:var(--text-light); font-weight:500;" onclick="closeMenu()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
